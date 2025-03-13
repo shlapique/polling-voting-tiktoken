@@ -1,9 +1,9 @@
 pragma solidity ^0.8.11;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {VoteResultNFT} from "./VegaNFT.sol"
+import {VoteResultNFT} from "./VegaNFT.sol";
 
 contract Polling is ReentrancyGuard, Ownable {
     enum PollState {
@@ -43,20 +43,19 @@ contract Polling is ReentrancyGuard, Ownable {
         if (stake.amount == 0) {
             return 0;
         }
-        uint256 tleft = stake.duration - (block.timestamp - stake.startTime)
+        uint256 tleft = stake.duration - (block.timestamp - stake.startTime);
         return stake.amount * (tleft ** 2);
     }
 
   function stakeTokens(uint256 _amount, uint256 _duration) external nonReentrant {
         require(_amount > 0, "Invalid amount, must be > 0");
-        require(_duration >= 0 && _duration <= 4 years, "Invalid duration, must be: 0 < dur < 4");
+        require(_duration >= 0 && _duration <= 4 * 365 days, "Invalid duration, must be: 0 < dur < 4");
 
         token.transferFrom(msg.sender, address(this), _amount);
         stakes[msg.sender] = Stake({
             amount: _amount, 
             startTime:
             block.timestamp, duration: _duration });
-        }
     }
 
     function initVote(string memory _description, 
@@ -68,19 +67,19 @@ contract Polling is ReentrancyGuard, Ownable {
 
         votes[nextVoteId] = Vote({
             description: _description,
-            deadline: block.timestamp.add(_duration),
+            deadline: block.timestamp + _duration,
             threshold: _threshold,
             yess: 0,
             nos: 0,
-            state: Active
+            state: PollState.Active
         });
         // emit VoteCreated(voteId, _description, block.timestamp.add(_duration), _threshold);
         nextVoteId++;
     }
 
-    function vote(uint256 _voteId, bool _choice) external nonReentrant {
+    function vote_emission(uint256 _voteId, bool _choice) external nonReentrant {
         Vote storage vote = votes[_voteId];
-        require(vote.state == Active, "Voting is over");
+        require(vote.state == PollState.Active, "Voting is over");
         require(block.timestamp < vote.deadline, "Voting period ended");
 
         uint256 power = calculateVotingPower(msg.sender);
@@ -88,7 +87,7 @@ contract Polling is ReentrancyGuard, Ownable {
 
         voted[_voteId][msg.sender] = true;
         
-        if (choice) {
+        if (_choice) {
             vote.yess += power;
         } else {
             vote.nos += power;
@@ -101,7 +100,7 @@ contract Polling is ReentrancyGuard, Ownable {
 
     function endVote(uint256 _voteId) public {
         Vote storage vote = votes[_voteId];
-        vote.state = Over;
+        vote.state = PollState.Over;
         bool result = vote.yess > vote.nos;
         VoteResultNFT.VoteResult memory info;
         info.id = _voteId;

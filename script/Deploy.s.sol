@@ -11,9 +11,9 @@ contract DeployScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        VegaVote vegatoken = new VegaVote("0x0");
+        VegaVote vegatoken = new VegaVote();
         VoteResultNFT nft = new VoteResultNFT();
-        Pollinig poll = new Polling(address(vegatoken), address(nft));
+        Polling poll = new Polling(address(vegatoken), address(nft));
 
         vm.stopBroadcast();
     }
