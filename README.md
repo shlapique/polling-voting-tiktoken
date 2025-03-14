@@ -1,4 +1,4 @@
-# VegaVote project contracts deploy
+# Deployment of VegaVote contracts
 
 ## VegaVote (VVT) contract
 [check on etherscan](https://sepolia.etherscan.io/address/0x8c41a12e95f3936b2f8d6ebfd74bbcdfda808274)
