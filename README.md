@@ -22,4 +22,5 @@ forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --sig "r
 ```
 
 # cast test
-[transaction](https://sepolia.etherscan.io/tx/0xa919efae86ceb1dd755e8093b4f779f579320d227fae18e58fc2c5c88db26fb6of) a function call `initVote()`
+[transaction](https://sepolia.etherscan.io/tx/0xa919efae86ceb1dd755e8093b4f779f579320d227fae18e58fc2c5c88db26fb6) a function call `initVote()`
+
