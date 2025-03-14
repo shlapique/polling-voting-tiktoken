@@ -29,7 +29,7 @@ contract Polling is ReentrancyGuard, Ownable {
     IERC20 public token;
     VoteResultNFT public nft;
     mapping(address => Stake) public stakes;
-    mapping(uint256 => Vote) public votes;
+    mapping(uint256 => Vote) public polls;
     mapping(uint256 => mapping(address => bool)) public voted;
     uint256 public nextVoteId;
 
@@ -49,7 +49,8 @@ contract Polling is ReentrancyGuard, Ownable {
 
   function stakeTokens(uint256 _amount, uint256 _duration) external nonReentrant {
         require(_amount > 0, "Invalid amount, must be > 0");
-        require(_duration >= 0 && _duration <= 4 * 365 days, "Invalid duration, must be: 0 < dur < 4");
+        require(_duration > 0 && _duration <= 4 * 365 days, "Invalid duration, must be: 0 < dur <= 4");
+        require(stakes[msg.sender].amount == 0, "Already staked");
 
         token.transferFrom(msg.sender, address(this), _amount);
         stakes[msg.sender] = Stake({
@@ -65,7 +66,7 @@ contract Polling is ReentrancyGuard, Ownable {
         require(_duration > 0, "Duration must be > 0");
         require(_threshold > 0, "Threshold must be > 0 ");
 
-        votes[nextVoteId] = Vote({
+        polls[nextVoteId] = Vote({
             description: _description,
             deadline: block.timestamp + _duration,
             threshold: _threshold,
@@ -73,14 +74,13 @@ contract Polling is ReentrancyGuard, Ownable {
             nos: 0,
             state: PollState.Active
         });
-        // emit VoteCreated(voteId, _description, block.timestamp.add(_duration), _threshold);
         nextVoteId++;
     }
 
     function vote_emission(uint256 _voteId, bool _choice) external nonReentrant {
-        Vote storage vote = votes[_voteId];
-        require(vote.state == PollState.Active, "Voting is over");
-        require(block.timestamp < vote.deadline, "Voting period ended");
+        Vote storage _vote = polls[_voteId];
+        require(_vote.state == PollState.Active, "Voting is over");
+        require(block.timestamp < _vote.deadline, "Voting period ended");
 
         uint256 power = calculateVotingPower(msg.sender);
         require(power > 0, "User has no power to vote!");
@@ -88,25 +88,25 @@ contract Polling is ReentrancyGuard, Ownable {
         voted[_voteId][msg.sender] = true;
         
         if (_choice) {
-            vote.yess += power;
+            _vote.yess += power;
         } else {
-            vote.nos += power;
+            _vote.nos += power;
         }
 
-        if (vote.threshold <= 0 || block.timestamp >= vote.deadline) {
+        if (_vote.threshold <= 0 || block.timestamp >= _vote.deadline) {
             endVote(_voteId);
         }
     }
 
     function endVote(uint256 _voteId) public {
-        Vote storage vote = votes[_voteId];
-        vote.state = PollState.Over;
-        bool result = vote.yess > vote.nos;
+        Vote storage _vote = polls[_voteId];
+        _vote.state = PollState.Over;
+        bool result = _vote.yess > _vote.nos;
         VoteResultNFT.VoteResult memory info;
         info.id = _voteId;
-        info.description = vote.description;
-        info.yess = vote.yess;
-        info.nos = vote.nos;
+        info.description = _vote.description;
+        info.yess = _vote.yess;
+        info.nos = _vote.nos;
         info.done = result;
         nft.mint(owner(), info);
     }
